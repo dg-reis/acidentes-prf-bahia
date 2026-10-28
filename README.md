@@ -49,3 +49,4 @@ flowchart TD
     D --> E["Análise exploratória"]
     E --> F["Consultas SQL"]
     F --> G["Dashboard interativo"]
+```
