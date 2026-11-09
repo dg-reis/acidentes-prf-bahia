@@ -1,54 +1,84 @@
-# Decisões do Projeto 
+# Decisões do Projeto
 
 ## Decisão 1: dados agrupados por pessoa
 
-A decisão é manter apenas os arquivos que possuem dados agrupados **por pessoa**. O motivo é explicado logo abaixo.
+A decisão é manter os arquivos `.csv` com dados agrupados **por pessoa**, em vez dos arquivos agrupados por ocorrência.
 
-Os arquivos `.csv` contendo dados de acidentes, disponíveis na área de dados públicos do site da PRF, possuem dois tipos: **dados agrupados por ocorrência** e **dados agrupados por pessoa**.
+A PRF disponibiliza os dois formatos:
 
 | AGRUPAMENTO POR PESSOA | AGRUPAMENTO POR OCORRÊNCIA |
 | :---: | :---: |
-| As linhas de dados de acidentes possuem localização completa, características dos acidentes, identificador do acidente, identificador das pessoas, características das pessoas (sexo e idade) e características dos veículos envolvidos. | As linhas de dados de acidentes possuem localização completa, características dos acidentes e identificador do acidente. |
+| Contêm informações sobre a localização, características dos acidentes, identificadores dos acidentes e das pessoas, características individuais (sexo e idade) e dos veículos envolvidos. | Contêm informações sobre a localização, características dos acidentes e identificadores dos acidentes. |
 
-Portanto, a escolha segue sendo os arquivos `.csv` agrupados por pessoa, já que possibilitam uma análise posterior direcionada exclusivamente ao perfil dos envolvidos nos acidentes, caso necessário.
+A escolha é manter os arquivos agrupados por pessoa, pois permitem uma possível análise posterior do perfil dos envolvidos nos acidentes, além das análises gerais de ocorrências.
 
-Uma comparação da quantidade de acidentes entre os dois arquivos já foi realizada, utilizando a fórmula `=CONT.VALORES(ÚNICO(A2:A194630))` no próprio Excel. Essa comparação também foi reproduzida no notebook (célula 10), confirmando **72.529 acidentes** nos dados agrupados por ocorrência e por pessoa em 2025.
+**Comparação entre os formatos:** a quantidade de acidentes de 2025 foi comparada no Excel, utilizando a fórmula `=CONT.VALORES(ÚNICO(A2:A194630))`. Ambos os formatos apresentaram **72.529 acidentes**. No notebook, a seção *"Quantas Linhas e quantos Acidentes por ano?"* confirmou os mesmos **72.529 IDs únicos** no arquivo agrupado por pessoa.
 
-Nos dados agrupados por ocorrência (onde cada linha representa um acidente) do ano de 2025, havia **72529** linhas, que representam essa mesma quantidade em número (nacional) de acidentes no ano. E nos dados agrupados por pessoa do ano de 2025, também há essa mesma quantidade de acidentes.
+Como uma linha desse arquivo não representa necessariamente um acidente único, a contagem de acidentes será realizada por meio dos IDs distintos (`id`).
 
-Porém, como uma linha nesse arquivo não representa necessariamente um acidente único, a contagem dos acidentes, nesse caso, será feita pelo próprio identificador (`id`).
+**Exemplo:** um mesmo `id` pode aparecer em quatro linhas, representando quatro registros associados ao mesmo acidente, geralmente correspondentes às pessoas envolvidas.
 
-**Exemplo:** um identificador pode estar presente, sequencialmente, em 4 linhas do arquivo, indicando 4 registros associados ao mesmo acidente. Essas linhas podem corresponder a pessoas envolvidas no acidente.
+**Custo da decisão:** foram identificadas **109.623 linhas (aproximadamente 8,8% da base)** sem informações individuais nas colunas `tipo_envolvido`, `estado_fisico` e `sexo`. Portanto, uma eventual análise do perfil dos envolvidos terá cobertura parcial.
 
-## Decisão 2: leitura dos CSVs
-- Separador `;`, decimal `,`, encoding `latin-1`
-- Vale para todos os anos.
-- Evidência 1: erro de UTF-8 em 2025 ("byte `0xe1`") ao tentar o padrão
-- Evidência 2: os 7 arquivos (2019 a 2025) foram lidos com esses parâmetros, sem erros.
+## Decisão 2: leitura dos arquivos CSV
 
-## Decisão 3: como medir acidentes e gravidade
-- Acidentes: `COUNT(DISTINCT id)`
-- **Quantidade de mortos:** soma de `mortos` por `id`, considerando que cada acidente pode possuir várias linhas no arquivo agrupado por pessoa.
+**Parâmetros de leitura:**
+
+- Separador: `sep=';'`
+- Separador decimal: `decimal=','`
+- Codificação: `encoding='latin-1'`
 
 **Evidências:**
+
+- A tentativa de leitura com a codificação padrão UTF-8 apresentou erro em 2025 (`byte 0xe1`).
+- Os sete arquivos, de 2019 a 2025, foram lidos corretamente com os parâmetros definidos.
+- Os nomes das colunas foram comparados utilizando `set()`, confirmando que os sete arquivos possuem os mesmos nomes de colunas.
+- As colunas `km`, `latitude` e `longitude` foram interpretadas como `float64`, indicando que os valores decimais foram reconhecidos corretamente.
+
+## Decisão 3: contagem de acidentes e mortes
+
+- **Acidentes:** contar IDs distintos (`COUNT(DISTINCT id)`).
+- **Mortes:** somar os valores da coluna `mortos` por `id`, considerando que um acidente pode possuir várias linhas no arquivo agrupado por pessoa.
+
+**Evidências:**
+
 - Em 2025, foram identificados **72.529 IDs únicos** em **194.629 linhas**.
-- A classificação `classificacao_acidente` apresentou apenas 1 valor distinto em **473.805 IDs**; os outros **8 IDs** não possuem classificação registrada.
-- Não foram identificados IDs repetidos entre anos: os **473.813 acidentes únicos** do conjunto correspondem à soma das quantidades de acidentes únicos de cada ano.
 - No conjunto nacional de 2019 a 2025, foram identificados **473.813 acidentes** e **39.303 mortes registradas**.
+- Não foram identificados IDs repetidos entre anos: os 473.813 acidentes únicos do conjunto correspondem à soma das quantidades de acidentes únicos de cada ano.
+- A coluna `classificacao_acidente` apresentou exatamente uma classificação distinta em **473.805 IDs**. Os outros **8 IDs** não possuem classificação registrada.
 - Foram identificados **33.745 acidentes classificados como fatais**, com **39.302 mortes registradas**.
-- Um acidente sem classificação apresentou a única morte restante.
-- A comparação entre `classificacao_acidente` e `mortos > 0` demonstrou consistência entre a classificação e a existência de mortes registradas nos acidentes classificados.
+- Os 39.303 mortos registrados se dividem em **39.302 nos acidentes classificados como fatais e 1 no acidente sem classificação**.
+- A comparação entre `classificacao_acidente` e `mortos > 0` demonstrou consistência entre a classificação e a existência de mortes registradas.
 
 **Limitação:** a comparação confirma a consistência quanto à existência de mortes, mas não permite validar se a quantidade exata de mortos está completa.
 
-## Pendências para a limpeza (passo 4)
+## Decisão 4: tipo da coluna `id`
+
+A coluna `id` foi convertida para o tipo inteiro (`int64`).
+
+**Justificativa:** alguns arquivos apresentavam essa coluna como `float64`, embora os valores fossem inteiros, sem casas decimais reais. Como não foram identificados valores nulos, a conversão para inteiro foi realizada para padronizar o identificador dos acidentes.
+
+## Decisão 5: criação do DataFrame `acidentes`
+
+Foi criado um DataFrame chamado `acidentes`, agrupado por `id`, com uma linha por acidente e duas informações:
+
+- `gravidade`: classificação do acidente, obtida com `first`.
+- `mortos`: soma das mortes registradas nas linhas correspondentes ao acidente, obtida com `sum`.
+
+**Justificativa:**
+
+- A classificação do acidente apresentou apenas um valor distinto por ID entre os registros não nulos.
+- A comparação entre a classificação e a existência de mortes registradas demonstrou consistência nos acidentes classificados.
+- O agrupamento permite trabalhar com a granularidade de uma linha por acidente, facilitando a contagem e as análises posteriores.
+
+## Pendências para a limpeza (Passo 4)
 
 | Problema | Evidência | Decisão |
 |---|---|---|
-| Nulos em `tipo_envolvido`, `estado_fisico` e `sexo` | 109.623 linhas nos 7 anos (17.150 em 2025); os nulos estão exatamente nas mesmas linhas. Nessas linhas, `ilesos`, `feridos_leves`, `feridos_graves` e `mortos` somam 0. Além disso, 14.181 linhas estão associadas a acidentes classificados como fatais. | A definir no passo 4 |
-| Nulos em `tipo_veiculo` | 6.341 registros em 2025. | A definir no passo 4 |
-| Nulos em `tipo_acidente` e `classificacao_acidente` | 33 e 36 registros, respectivamente, considerando os 7 anos. | A definir no passo 4 |
-| `idade = -1` e `sexo = inválido` | a quantificar | a definir |
-| Coordenadas e `km` plausíveis | a conferir | a definir |
-| `regional`, `delegacia`, `uop` com nulos | fora do escopo | ignorar |
-| `classificacao_acidente` ausente | 8 acidentes sem classificação; 1 possui `mortos > 0` | Investigar o registro com morte contabilizada antes de definir o tratamento |
+| Nulos em `tipo_envolvido`, `estado_fisico` e `sexo` | 109.623 linhas nos sete anos (17.150 em 2025). Os nulos estão exatamente nas mesmas linhas. Nessas linhas, `ilesos`, `feridos_leves`, `feridos_graves` e `mortos` somam 0. Além disso, 14.181 linhas estão associadas a acidentes classificados como fatais. | Definir tratamento. |
+| Nulos em `tipo_veiculo` | 45.838 linhas nos sete anos. | Verificar a relação com os registros de pedestres e definir tratamento. |
+| Nulos em `tipo_acidente` | 33 linhas nos sete anos. | Definir tratamento. |
+| Nulos em `classificacao_acidente` | 36 linhas nulas nos sete anos; 8 acidentes não possuem classificação em nenhuma linha, e 1 deles possui `mortos > 0`. Não foi verificado se as demais linhas nulas pertencem a acidentes classificados em outras linhas. | Investigar o acidente com morte registrada antes de definir o tratamento. |
+| `idade = -1` e `sexo = inválido` | O dicionário de dados indica que representam ausência de informação. Quantidades ainda não verificadas. | Quantificar e definir tratamento. |
+| Coordenadas e `km` | Necessário verificar a plausibilidade dos valores de latitude, longitude e quilometragem. | Validar. |
+| Nulos em `regional`, `delegacia` e `uop` | Campos fora do escopo principal do projeto. | Ignorar. |
