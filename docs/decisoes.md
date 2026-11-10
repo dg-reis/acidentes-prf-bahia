@@ -18,7 +18,7 @@ Como uma linha desse arquivo não representa necessariamente um acidente único,
 
 **Exemplo:** um mesmo `id` pode aparecer em quatro linhas, representando quatro registros associados ao mesmo acidente, geralmente correspondentes às pessoas envolvidas.
 
-**Custo da decisão:** foram identificadas **109.623 linhas (aproximadamente 8,8% da base)** sem informações individuais nas colunas `tipo_envolvido`, `estado_fisico` e `sexo`. Portanto, uma eventual análise do perfil dos envolvidos terá cobertura parcial.
+**Custo da decisão:** foram identificadas **109.623 linhas (≈ 8,8% da base)** sem informações individuais nas colunas `tipo_envolvido`, `estado_fisico` e `sexo`. Portanto, uma eventual análise do perfil dos envolvidos terá cobertura parcial.
 
 ## Decisão 2: leitura dos arquivos CSV
 
